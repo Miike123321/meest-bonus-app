@@ -84,9 +84,11 @@ def parse_register_file(file):
                 'sum_1kg': 0.0,
                 'sum_2kg': 0.0,
                 'sum_10kg': 0.0,
+                'sum_over_10kg': 0.0,
                 'qty_1kg': 0,
                 'qty_2kg': 0,
                 'qty_10kg': 0,
+                'qty_over_10kg': 0,
             }
             
             for c in range(df.shape[1]):
@@ -105,6 +107,9 @@ def parse_register_file(file):
                 elif 'Видача відправлення отримувачу до 10 кг' in srv:
                     if sub == 'Сума': row_data['sum_10kg'] = float(val)
                     elif sub == 'К-сть': row_data['qty_10kg'] = int(val)
+                elif 'Видача відправлення отримувачу більше 10 кг' in srv:
+                    if sub == 'Сума': row_data['sum_over_10kg'] = float(val)
+                    elif sub == 'К-сть': row_data['qty_over_10kg'] = int(val)
                     
             rows.append(row_data)
             
@@ -190,8 +195,14 @@ if st.button("Сформировать отчет"):
         df_registers = pd.concat(list_dfs, ignore_index=True)
         
         df_aggregated = df_registers.groupby('Відділення', as_index=False).sum()
-        df_aggregated['Кіль-ть видач'] = df_aggregated['qty_1kg'] + df_aggregated['qty_2kg'] + df_aggregated['qty_10kg']
-        df_aggregated['Бонусы_суммарно'] = df_aggregated['sum_1kg'] + df_aggregated['sum_2kg'] + df_aggregated['sum_10kg']
+        df_aggregated['Кіль-ть видач'] = (
+            df_aggregated['qty_1kg'] + df_aggregated['qty_2kg']
+            + df_aggregated['qty_10kg'] + df_aggregated['qty_over_10kg']
+        )
+        df_aggregated['Бонусы_суммарно'] = (
+            df_aggregated['sum_1kg'] + df_aggregated['sum_2kg']
+            + df_aggregated['sum_10kg'] + df_aggregated['sum_over_10kg']
+        )
         
         df_stores_ref = pd.read_excel(stores_ref_file)
         df_directors_ref = pd.read_excel(directors_ref_file)
