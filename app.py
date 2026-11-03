@@ -32,6 +32,8 @@ if not os.environ.get("STREAMLIT_RUNNING"):
 
 import datetime
 import io
+from copy import copy
+from openpyxl.styles import Alignment, Font, PatternFill
 import pandas as pd
 import streamlit as st
 
@@ -271,7 +273,28 @@ if st.button("Сформировать отчет"):
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            final_report_with_total.to_excel(writer, index=False, sheet_name=f'MeestБонуси{ukr_months_upper[prev_month_idx]}')
+            sheet_name = f'MeestБонуси{ukr_months_upper[prev_month_idx]}'
+            final_report_with_total.to_excel(writer, index=False, sheet_name=sheet_name)
+
+            worksheet = writer.sheets[sheet_name]
+            bonus_col_idx = final_report_with_total.columns.get_loc(bonus_col_name) + 1
+            for column_name in ('Магазин', 'ПІБ директора'):
+                column_idx = final_report_with_total.columns.get_loc(column_name) + 1
+                for row_idx in range(1, worksheet.max_row + 1):
+                    worksheet.cell(row=row_idx, column=column_idx).alignment = Alignment(horizontal='left')
+
+            worksheet.cell(row=1, column=bonus_col_idx).font = Font(bold=True)
+            for row_idx in range(2, worksheet.max_row + 1):
+                worksheet.cell(row=row_idx, column=bonus_col_idx).number_format = '# ##0'
+
+            total_row_idx = worksheet.max_row
+            total_fill = PatternFill(fill_type='solid', fgColor='FFF2CC')
+            for cell in worksheet[total_row_idx]:
+                cell.fill = total_fill
+                font = copy(cell.font)
+                font.sz = 12
+                font.bold = cell.column in (2, bonus_col_idx)
+                cell.font = font
         
         st.success("Отчет сформирован 1-в-1 с образцом!")
         st.dataframe(final_report_with_total)
